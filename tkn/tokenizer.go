@@ -1,6 +1,9 @@
 package tkn
 
-import "strconv"
+import (
+	"strconv"
+	"unicode"
+)
 
 type TokenKind int
 
@@ -26,6 +29,23 @@ const (
 	TokenKindSemicolon
 	TokenKindVar
 )
+
+// https://tc39.es/ecma262/#sec-white-space
+var whitespace = map[rune]interface{}{
+	'\u0009': nil, // Character Tabulation <TAB>
+	'\u000B': nil, // Line Tabulation <VT>
+	'\u000C': nil, // Form Feed (FF) <FF>
+	'\uFEFF': nil, // Zero Width No-Break Space <ZWNBSP>
+}
+
+// https://tc39.es/ecma262/#sec-white-space
+func isWhitespace(r rune) bool {
+	if _, ok := whitespace[r]; ok {
+		return true
+	}
+
+	return unicode.IsSpace(r)
+}
 
 func (tk TokenKind) String() string {
 	switch tk {
@@ -103,12 +123,11 @@ func (t *Tokenizer) Tokenize(text string) []Token {
 
 	buffer := ""
 	for _, ch := range text {
-		if ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' {
+		if isWhitespace(ch) {
 			if token, ok := t.resolveBuffer(buffer, line, column); ok {
 				tokens = append(tokens, token)
 			}
 			buffer = ""
-
 		} else if ch == '(' || ch == ',' || ch == ')' || ch == ';' {
 			if token, ok := t.resolveBuffer(buffer, line, column); ok {
 				tokens = append(tokens, token)
