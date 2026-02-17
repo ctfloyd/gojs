@@ -30,23 +30,6 @@ const (
 	TokenKindVar
 )
 
-// https://tc39.es/ecma262/#sec-white-space
-var whitespace = map[rune]interface{}{
-	'\u0009': nil, // Character Tabulation <TAB>
-	'\u000B': nil, // Line Tabulation <VT>
-	'\u000C': nil, // Form Feed (FF) <FF>
-	'\uFEFF': nil, // Zero Width No-Break Space <ZWNBSP>
-}
-
-// https://tc39.es/ecma262/#sec-white-space
-func isWhitespace(r rune) bool {
-	if _, ok := whitespace[r]; ok {
-		return true
-	}
-
-	return unicode.IsSpace(r)
-}
-
 func (tk TokenKind) String() string {
 	switch tk {
 	case TokenKindIllegal:
@@ -89,6 +72,23 @@ func (tk TokenKind) String() string {
 		return "Unknown"
 
 	}
+}
+
+// https://tc39.es/ecma262/#sec-white-space
+var whitespace = map[rune]interface{}{
+	'\u0009': nil, // Character Tabulation <TAB>
+	'\u000B': nil, // Line Tabulation <VT>
+	'\u000C': nil, // Form Feed (FF) <FF>
+	'\uFEFF': nil, // Zero Width No-Break Space <ZWNBSP>
+}
+
+// https://tc39.es/ecma262/#sec-white-space
+func isWhitespace(r rune) bool {
+	if _, ok := whitespace[r]; ok {
+		return true
+	}
+
+	return unicode.IsSpace(r)
 }
 
 type Location struct {
