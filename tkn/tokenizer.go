@@ -21,6 +21,7 @@ const (
 	TokenKindLeftBrace
 	TokenKindLeftParen
 	TokenKindLessThan
+	TokenKindLessThanOrEqual
 	TokenKindPlus
 	TokenKindPlusPlus
 	TokenKindReturn
@@ -52,6 +53,8 @@ func (tk TokenKind) String() string {
 		return "LeftParen"
 	case TokenKindLessThan:
 		return "LessThan"
+	case TokenKindLessThanOrEqual:
+		return "LessThanOrEqual"
 	case TokenKindPlus:
 		return "Plus"
 	case TokenKindPlusPlus:
@@ -91,6 +94,72 @@ func isWhitespace(r rune) bool {
 	return unicode.IsSpace(r)
 }
 
+type Punctuator struct {
+	value        rune
+	token        TokenKind
+	continuation *Punctuator
+}
+
+var punctuator = map[rune]Punctuator{
+	'<': {
+		value: '<',
+		token: TokenKindLessThan,
+		continuation: &Punctuator{
+			value: '=',
+			token: TokenKindLessThanOrEqual,
+		},
+	},
+	'>': {
+		value: '>',
+		token: TokenKindGreaterThan,
+		// TODO (c.floyd): continuation
+	},
+	'=': {
+		value: '=',
+		token: TokenKindEqual,
+	},
+	'{': {
+		value: '{',
+		token: TokenKindLeftBrace,
+	},
+	'}': {
+		value: '}',
+		token: TokenKindRightBrace,
+	},
+	'(': {
+		value: '(',
+		token: TokenKindLeftParen,
+	},
+	')': {
+		value: ')',
+		token: TokenKindRightParen,
+	},
+	'+': {
+		value: '+',
+		token: TokenKindPlus,
+		continuation: &Punctuator{
+			value: '+',
+			token: TokenKindPlusPlus,
+		},
+	},
+	',': {
+		value: ';',
+		token: TokenKindComma,
+	},
+	';': {
+		value: ';',
+		token: TokenKindSemicolon,
+	},
+}
+
+func isPunctuatorStart(ch rune) bool {
+	if _, ok := punctuator[ch]; ok {
+		return true
+	}
+
+	return false
+}
+
 type Location struct {
 	Line, Column int
 }
@@ -113,54 +182,92 @@ func NewTokenWithValue(kind TokenKind, line, column int, value string) Token {
 }
 
 type Tokenizer struct {
+	text    string
+	current int
+
+	line   int
+	column int
 }
 
 func (t *Tokenizer) Tokenize(text string) []Token {
+	t.text = text
+
 	tokens := make([]Token, 0, 128)
 
-	line := 0
-	column := 0
-
 	buffer := ""
-	for _, ch := range text {
-		if isWhitespace(ch) {
-			if token, ok := t.resolveBuffer(buffer, line, column); ok {
-				tokens = append(tokens, token)
-			}
-			buffer = ""
-		} else if ch == '(' || ch == ',' || ch == ')' || ch == ';' {
-			if token, ok := t.resolveBuffer(buffer, line, column); ok {
-				tokens = append(tokens, token)
-			}
+	for t.current < len(text) {
+		ch := t.consume()
 
-			buffer = string(ch)
-			if token, ok := t.resolveBuffer(buffer, line, column); ok {
+		if isWhitespace(ch) {
+			if token, ok := t.resolveBuffer(buffer); ok {
 				tokens = append(tokens, token)
 			}
 			buffer = ""
+		} else if isPunctuatorStart(ch) {
+			if token, ok := t.resolveBuffer(buffer); ok {
+				tokens = append(tokens, token)
+			}
+			buffer = ""
+
+			token := t.resolvePunctuator(ch)
+			tokens = append(tokens, token)
 		} else {
 			buffer += string(ch)
 		}
-
-		column += 1
-		if ch == '\n' {
-			line++
-			column = 0
-		}
 	}
 
-	if token, ok := t.resolveBuffer(buffer, line, column); ok {
+	if token, ok := t.resolveBuffer(buffer); ok {
 		tokens = append(tokens, token)
 	}
 
-	tokens = append(tokens, Token{Kind: TokenKindEOF, Location: Location{Line: line, Column: column}})
+	tokens = append(tokens, Token{Kind: TokenKindEOF, Location: Location{Line: t.line, Column: t.column}})
 	return tokens
 }
 
-func (t *Tokenizer) resolveBuffer(buffer string, line, column int) (Token, bool) {
+func (t *Tokenizer) peek() rune {
+	if t.current >= len(t.text) {
+		return -1
+	}
+
+	return rune(t.text[t.current])
+}
+
+func (t *Tokenizer) consume() rune {
+	if t.current >= len(t.text) {
+		return -1
+	}
+
+	ch := rune(t.text[t.current])
+	t.current += 1
+
+	// TODO (c.floyd): This should probably use line separators?
+	if ch == '\n' {
+		t.column = 0
+		t.line += 1
+	} else {
+		t.column += 1
+	}
+
+	return ch
+}
+
+func (t *Tokenizer) resolvePunctuator(start rune) Token {
+	p := punctuator[start]
+
+	for p.continuation != nil && p.continuation.value == t.peek() {
+		t.consume()
+
+		p = *p.continuation
+	}
+	return NewToken(p.token, t.line, t.column)
+}
+
+func (t *Tokenizer) resolveBuffer(buffer string) (Token, bool) {
 	if len(buffer) == 0 {
 		return Token{}, false
 	}
+
+	line, column := t.line, t.column
 
 	if buffer == "function" {
 		return NewToken(TokenKindFunction, line, column), true
@@ -174,56 +281,12 @@ func (t *Tokenizer) resolveBuffer(buffer string, line, column int) (Token, bool)
 		return NewToken(TokenKindReturn, line, column), true
 	}
 
-	if buffer == "<" {
-		return NewToken(TokenKindLessThan, line, column), true
-	}
-
 	if buffer == "if" {
 		return NewToken(TokenKindIf, line, column), true
 	}
 
 	if buffer == "for" {
 		return NewToken(TokenKindFor, line, column), true
-	}
-
-	if buffer == "," {
-		return NewToken(TokenKindComma, line, column), true
-	}
-
-	if buffer == "(" {
-		return NewToken(TokenKindLeftParen, line, column), true
-	}
-
-	if buffer == ")" {
-		return NewToken(TokenKindRightParen, line, column), true
-	}
-
-	if buffer == "{" {
-		return NewToken(TokenKindLeftBrace, line, column), true
-	}
-
-	if buffer == "}" {
-		return NewToken(TokenKindRightBrace, line, column), true
-	}
-
-	if buffer == "=" {
-		return NewToken(TokenKindEqual, line, column), true
-	}
-
-	if buffer == "+" {
-		return NewToken(TokenKindPlus, line, column), true
-	}
-
-	if buffer == "++" {
-		return NewToken(TokenKindPlusPlus, line, column), true
-	}
-
-	if buffer == ";" {
-		return NewToken(TokenKindSemicolon, line, column), true
-	}
-
-	if buffer == ">" {
-		return NewToken(TokenKindGreaterThan, line, column), true
 	}
 
 	if _, err := strconv.Atoi(buffer); err == nil {
