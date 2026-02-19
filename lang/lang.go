@@ -98,3 +98,9 @@ type NativeFunction struct {
 }
 
 func (f *NativeFunction) _Object() {}
+
+type Array struct {
+	Store []Value
+}
+
+func (a *Array) _Object() {}

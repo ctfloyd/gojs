@@ -215,6 +215,17 @@ func (p *Parser) parsePrimaryExpression() ast.Expression {
 	} else if p.match(tkn.TokenKindIntLiteral) {
 		value, _ := strconv.Atoi(p.consume(tkn.TokenKindIntLiteral).Value)
 		return &ast.IntLiteral{Value: value}
+	} else if p.match(tkn.TokenKindLeftSquareBracket) {
+		var elements []ast.Expression
+		p.consume(tkn.TokenKindLeftSquareBracket)
+		for !p.match(tkn.TokenKindRightSquareBracket) {
+			elements = append(elements, p.parseExpression())
+			if p.match(tkn.TokenKindComma) {
+				p.consume(tkn.TokenKindComma)
+			}
+		}
+		p.consume(tkn.TokenKindRightSquareBracket)
+		return &ast.ArrayExpression{Elements: elements}
 	} else {
 		panic("yoo yoo")
 	}

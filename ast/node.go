@@ -66,6 +66,14 @@ type VariableDeclarator struct {
 
 func (v *VariableDeclarator) Node() {}
 
+type ArrayExpression struct {
+	Start, End int
+	Elements   []Expression
+}
+
+func (a *ArrayExpression) Node()        {}
+func (a *ArrayExpression) _Expression() {}
+
 type BinaryExpression struct {
 	Start, End  int
 	Left, Right Expression

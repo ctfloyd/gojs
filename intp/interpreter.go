@@ -64,6 +64,8 @@ func (i *Interpreter) exitScope() {
 
 func (i *Interpreter) Do(n ast.Node) lang.Value {
 	switch n := n.(type) {
+	case *ast.ArrayExpression:
+		return i.arrayExpression(n)
 	case *ast.AssignmentExpression:
 		return i.assignmentExpression(n)
 	case *ast.BinaryExpression:
@@ -136,6 +138,15 @@ func (i *Interpreter) variableDeclarator(n *ast.VariableDeclarator) lang.Value {
 	init := i.Do(n.Init)
 	i.put(n.Id.Name, init)
 	return init
+}
+
+func (i *Interpreter) arrayExpression(n *ast.ArrayExpression) lang.Value {
+	results := make([]lang.Value, len(n.Elements))
+	for ix, e := range n.Elements {
+		results[ix] = i.Do(e)
+	}
+
+	return lang.NewObj(&lang.Array{Store: results})
 }
 
 func (i *Interpreter) assignmentExpression(n *ast.AssignmentExpression) lang.Value {
