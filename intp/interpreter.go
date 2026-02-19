@@ -170,6 +170,10 @@ func (i *Interpreter) updateExpression(n *ast.UpdateExpression) lang.Value {
 		update := lang.NewInt(arg.Int + 1)
 		i.put(identifier.Name, update)
 		return update
+	} else if n.Operator == "--" {
+		update := lang.NewInt(arg.Int - 1)
+		i.put(identifier.Name, update)
+		return update
 	} else {
 		panic("unsupported operation")
 	}
