@@ -75,6 +75,14 @@ type BinaryExpression struct {
 func (b *BinaryExpression) Node()        {}
 func (b *BinaryExpression) _Expression() {}
 
+type UpdateExpression struct {
+	Argument Expression
+	Operator string
+}
+
+func (u *UpdateExpression) Node()        {}
+func (u *UpdateExpression) _Expression() {}
+
 type ReturnStatement struct {
 	Start, End int
 	Argument   Expression

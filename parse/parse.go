@@ -224,6 +224,9 @@ func (p *Parser) parseSecondaryExpression(lhs ast.Node) ast.Expression {
 	if p.match(tkn.TokenKindPlus) {
 		p.consume(tkn.TokenKindPlus)
 		return &ast.BinaryExpression{Left: lhs.(ast.Expression), Right: p.parseExpression(), Operator: "+"}
+	} else if p.match(tkn.TokenKindPlusPlus) {
+		p.consume(tkn.TokenKindPlusPlus)
+		return &ast.UpdateExpression{Argument: lhs.(ast.Expression), Operator: "++"}
 	} else if p.match(tkn.TokenKindGreaterThan) {
 		p.consume(tkn.TokenKindGreaterThan)
 		return &ast.BinaryExpression{Left: lhs.(ast.Expression), Right: p.parseExpression(), Operator: ">"}
@@ -260,6 +263,7 @@ func (p *Parser) matchesExpression() bool {
 func (p *Parser) matchesSecondaryExpression() bool {
 	k := p.kind()
 	return k == tkn.TokenKindPlus ||
+		k == tkn.TokenKindPlusPlus ||
 		k == tkn.TokenKindGreaterThan ||
 		k == tkn.TokenKindLeftParen ||
 		k == tkn.TokenKindLessThan ||

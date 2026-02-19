@@ -88,6 +88,8 @@ func (i *Interpreter) Do(n ast.Node) lang.Value {
 		return i.program(n)
 	case *ast.ReturnStatement:
 		return i.returnStatement(n)
+	case *ast.UpdateExpression:
+		return i.updateExpression(n)
 	case *ast.VariableDeclarator:
 		return i.variableDeclarator(n)
 	case *ast.VariableDeclaration:
@@ -152,6 +154,22 @@ func (i *Interpreter) binaryExpression(n *ast.BinaryExpression) lang.Value {
 		return lang.NewBool(l.Int > r.Int)
 	} else if n.Operator == "<" {
 		return lang.NewBool(l.Int < r.Int)
+	} else {
+		panic("unsupported operation")
+	}
+}
+
+func (i *Interpreter) updateExpression(n *ast.UpdateExpression) lang.Value {
+	identifier, ok := n.Argument.(*ast.Identifier)
+	if !ok {
+		panic("unsupported expression type")
+	}
+
+	arg := i.Do(n.Argument)
+	if n.Operator == "++" {
+		update := lang.NewInt(arg.Int + 1)
+		i.put(identifier.Name, update)
+		return update
 	} else {
 		panic("unsupported operation")
 	}
