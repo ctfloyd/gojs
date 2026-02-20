@@ -74,6 +74,15 @@ type ArrayExpression struct {
 func (a *ArrayExpression) Node()        {}
 func (a *ArrayExpression) _Expression() {}
 
+type MemberExpression struct {
+	Start, End int
+	Object     Expression
+	Property   Expression
+}
+
+func (m *MemberExpression) Node()        {}
+func (m *MemberExpression) _Expression() {}
+
 type BinaryExpression struct {
 	Start, End  int
 	Left, Right Expression

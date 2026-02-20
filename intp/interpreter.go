@@ -86,6 +86,8 @@ func (i *Interpreter) Do(n ast.Node) lang.Value {
 		return i.ifStatement(n)
 	case *ast.IntLiteral:
 		return i.intLiteral(n)
+	case *ast.MemberExpression:
+		return i.memberExpression(n)
 	case *ast.Program:
 		return i.program(n)
 	case *ast.ReturnStatement:
@@ -250,4 +252,27 @@ func (i *Interpreter) callExpression(n *ast.CallExpression) lang.Value {
 
 func (i *Interpreter) intLiteral(n *ast.IntLiteral) lang.Value {
 	return lang.NewInt(n.Value)
+}
+
+func (i *Interpreter) memberExpression(n *ast.MemberExpression) lang.Value {
+	o := i.Do(n.Object)
+	if o.Type != lang.ValueTypeObj {
+		panic("invalid object")
+	}
+
+	array, ok := o.Obj.(*lang.Array)
+	if !ok {
+		panic("object is not an array")
+	}
+
+	index := i.Do(n.Property)
+	if index.Type != lang.ValueTypeInt {
+		panic("invalid index")
+	}
+
+	if index.Int >= len(array.Store) {
+		panic("index out of range")
+	}
+
+	return array.Store[index.Int]
 }

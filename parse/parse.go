@@ -252,6 +252,11 @@ func (p *Parser) parseSecondaryExpression(lhs ast.Node) ast.Expression {
 		return &ast.AssignmentExpression{Left: lhs.(ast.Expression), Right: p.parseExpression(), Operator: "="}
 	} else if p.match(tkn.TokenKindLeftParen) {
 		return p.parseCallExpression(lhs.(*ast.Identifier))
+	} else if p.match(tkn.TokenKindLeftSquareBracket) {
+		p.consume(tkn.TokenKindLeftSquareBracket)
+		property := p.parseExpression()
+		p.consume(tkn.TokenKindRightSquareBracket)
+		return &ast.MemberExpression{Object: lhs.(*ast.Identifier), Property: property}
 	} else {
 		panic("yoo yoo 2")
 	}
@@ -282,5 +287,6 @@ func (p *Parser) matchesSecondaryExpression() bool {
 		k == tkn.TokenKindGreaterThan ||
 		k == tkn.TokenKindLeftParen ||
 		k == tkn.TokenKindLessThan ||
-		k == tkn.TokenKindEqual
+		k == tkn.TokenKindEqual ||
+		k == tkn.TokenKindLeftSquareBracket
 }
