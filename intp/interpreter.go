@@ -172,12 +172,7 @@ func (i *Interpreter) binaryExpression(n *ast.BinaryExpression) lang.Value {
 	}
 }
 
-func (i *Interpreter) updateExpression(n *ast.UpdateExpression) lang.Value {
-	identifier, ok := n.Argument.(*ast.Identifier)
-	if !ok {
-		panic("unsupported expression type")
-	}
-
+func (i *Interpreter) identifierUpdateExpression(n *ast.UpdateExpression, identifier *ast.Identifier) lang.Value {
 	arg := i.Do(n.Argument)
 	if n.Operator == "++" {
 		update := lang.NewInt(arg.Int + 1)
@@ -190,6 +185,44 @@ func (i *Interpreter) updateExpression(n *ast.UpdateExpression) lang.Value {
 	} else {
 		panic("unsupported operation")
 	}
+}
+
+func (i *Interpreter) memberUpdateExpression(n *ast.UpdateExpression, me *ast.MemberExpression) lang.Value {
+	currentValue := i.Do(me)
+	if currentValue.Type != lang.ValueTypeInt {
+		panic("not an int")
+	}
+
+	// NOTE: It's not necessary to do type checking on the interpreted results. The act of computing 'currentValue'
+	//       would result in type assertions and index bounds checks to fail.
+	val := i.Do(me.Object)
+	array, _ := val.Obj.(*lang.Array)
+	idx := i.Do(me.Property)
+	if n.Operator == "++" {
+		update := lang.NewInt(currentValue.Int + 1)
+		array.Store[idx.Int] = update
+		return update
+	} else if n.Operator == "--" {
+		update := lang.NewInt(currentValue.Int - 1)
+		array.Store[idx.Int] = update
+		return update
+	} else {
+		panic("unsupported operation")
+	}
+
+}
+
+func (i *Interpreter) updateExpression(n *ast.UpdateExpression) lang.Value {
+	if identifier, ok := n.Argument.(*ast.Identifier); ok {
+		return i.identifierUpdateExpression(n, identifier)
+	}
+
+	if member, ok := n.Argument.(*ast.MemberExpression); ok {
+		return i.memberUpdateExpression(n, member)
+	}
+
+	panic("unsupported expression type")
+
 }
 
 func (i *Interpreter) functionDeclaration(n *ast.FunctionDeclaration) lang.Value {
