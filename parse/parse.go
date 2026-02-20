@@ -226,6 +226,17 @@ func (p *Parser) parsePrimaryExpression() ast.Expression {
 		}
 		p.consume(tkn.TokenKindRightSquareBracket)
 		return &ast.ArrayExpression{Elements: elements}
+	} else if p.match(tkn.TokenKindLeftBrace) {
+		var properties []ast.Property
+		p.consume(tkn.TokenKindLeftBrace)
+		for !p.match(tkn.TokenKindRightBrace) {
+			key := p.parseExpression()
+			p.consume(tkn.TokenKindColon)
+			value := p.parseExpression()
+			properties = append(properties, ast.Property{Key: key, Value: value})
+		}
+		p.consume(tkn.TokenKindRightBrace)
+		return &ast.ObjectExpression{Properties: properties}
 	} else {
 		panic("yoo yoo")
 	}
@@ -276,7 +287,9 @@ func (p *Parser) matchesExpression() bool {
 	k := p.kind()
 	return k == tkn.TokenKindIntLiteral ||
 		k == tkn.TokenKindIdentifier ||
-		k == tkn.TokenKindLeftParen
+		k == tkn.TokenKindLeftParen ||
+		k == tkn.TokenKindLeftSquareBracket ||
+		k == tkn.TokenKindLeftBrace
 }
 
 func (p *Parser) matchesSecondaryExpression() bool {

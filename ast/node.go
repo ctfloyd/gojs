@@ -161,3 +161,19 @@ type AssignmentExpression struct {
 
 func (a *AssignmentExpression) Node()        {}
 func (a *AssignmentExpression) _Expression() {}
+
+type ObjectExpression struct {
+	Start, End int
+	Properties []Property
+}
+
+func (o *ObjectExpression) Node()        {}
+func (o *ObjectExpression) _Expression() {}
+
+type Property struct {
+	Start, End int
+	Key        Expression
+	Value      Expression
+}
+
+func (p *Property) Node() {}
