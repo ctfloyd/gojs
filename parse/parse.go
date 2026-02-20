@@ -270,8 +270,8 @@ func (p *Parser) parseSecondaryExpression(lhs ast.Node) ast.Expression {
 		return &ast.MemberExpression{Object: lhs.(*ast.Identifier), Property: property}
 	} else if p.match(tkn.TokenKindPeriod) {
 		p.consume(tkn.TokenKindPeriod)
-		property := p.parseExpression()
-		return &ast.MemberExpression{Object: lhs.(*ast.Identifier), Property: property}
+		property := p.consume(tkn.TokenKindIdentifier).Value
+		return &ast.MemberExpression{Object: lhs.(*ast.Identifier), Property: &ast.Identifier{Name: property}}
 	} else {
 		panic("yoo yoo 2")
 	}
