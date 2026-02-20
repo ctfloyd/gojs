@@ -152,10 +152,17 @@ func (i *Interpreter) arrayExpression(n *ast.ArrayExpression) lang.Value {
 }
 
 func (i *Interpreter) assignmentExpression(n *ast.AssignmentExpression) lang.Value {
-	identifier := n.Left.(*ast.Identifier)
 	update := i.Do(n.Right)
-	i.put(identifier.Name, update)
-	return update
+	if identifier, ok := n.Left.(*ast.Identifier); ok {
+		i.put(identifier.Name, update)
+	} else if member, ok := n.Left.(*ast.MemberExpression); ok {
+		array, idx, _ := i.resolveArrayMemberExpression(member)
+		array.Store[idx] = update
+	} else {
+		panic("unsupported assignment expression")
+	}
+
+	return lang.NewUndefined()
 }
 
 func (i *Interpreter) binaryExpression(n *ast.BinaryExpression) lang.Value {
@@ -188,23 +195,14 @@ func (i *Interpreter) identifierUpdateExpression(n *ast.UpdateExpression, identi
 }
 
 func (i *Interpreter) memberUpdateExpression(n *ast.UpdateExpression, me *ast.MemberExpression) lang.Value {
-	currentValue := i.Do(me)
-	if currentValue.Type != lang.ValueTypeInt {
-		panic("not an int")
-	}
-
-	// NOTE: It's not necessary to do type checking on the interpreted results. The act of computing 'currentValue'
-	//       would result in type assertions and index bounds checks to fail.
-	val := i.Do(me.Object)
-	array, _ := val.Obj.(*lang.Array)
-	idx := i.Do(me.Property)
+	array, idx, currentValue := i.resolveArrayMemberExpression(me)
 	if n.Operator == "++" {
 		update := lang.NewInt(currentValue.Int + 1)
-		array.Store[idx.Int] = update
+		array.Store[idx] = update
 		return update
 	} else if n.Operator == "--" {
 		update := lang.NewInt(currentValue.Int - 1)
-		array.Store[idx.Int] = update
+		array.Store[idx] = update
 		return update
 	} else {
 		panic("unsupported operation")
@@ -288,6 +286,11 @@ func (i *Interpreter) intLiteral(n *ast.IntLiteral) lang.Value {
 }
 
 func (i *Interpreter) memberExpression(n *ast.MemberExpression) lang.Value {
+	_, _, val := i.resolveArrayMemberExpression(n)
+	return val
+}
+
+func (i *Interpreter) resolveArrayMemberExpression(n *ast.MemberExpression) (*lang.Array, int, lang.Value) {
 	o := i.Do(n.Object)
 	if o.Type != lang.ValueTypeObj {
 		panic("invalid object")
@@ -307,5 +310,5 @@ func (i *Interpreter) memberExpression(n *ast.MemberExpression) lang.Value {
 		panic("index out of range")
 	}
 
-	return array.Store[index.Int]
+	return array, index.Int, array.Store[index.Int]
 }
