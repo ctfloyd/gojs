@@ -3,6 +3,7 @@ package lang
 import (
 	"fmt"
 	"gojs/ast"
+	"strconv"
 )
 
 type ValueType int
@@ -78,17 +79,35 @@ func NewObj(obj Object) Value {
 
 type Object interface {
 	_Object()
+	GetProperty(name string) Value
+	SetProperty(name string, value Value)
 }
 type JsObject struct {
 	Storage map[string]Value
 }
 
-func (jsObject *JsObject) _Object() {}
+func (j *JsObject) GetProperty(name string) Value {
+	return j.Storage[name]
+}
+
+func (j *JsObject) SetProperty(name string, value Value) {
+	j.Storage[name] = value
+}
+
+func (j *JsObject) _Object() {}
 
 type Function struct {
 	Name       string
 	Body       ast.Statement
 	Parameters []ast.Identifier
+}
+
+func (f *Function) GetProperty(name string) Value {
+	panic("nope")
+}
+
+func (f *Function) SetProperty(name string, value Value) {
+	panic("nope")
 }
 
 func (f *Function) _Object() {}
@@ -97,10 +116,35 @@ type NativeFunction struct {
 	Function func(values ...Value)
 }
 
+func (f *NativeFunction) GetProperty(name string) Value {
+	panic("nope")
+}
+
+func (f *NativeFunction) SetProperty(name string, value Value) {
+	panic("nope")
+}
+
 func (f *NativeFunction) _Object() {}
 
 type Array struct {
 	Store []Value
+}
+
+func (a *Array) GetProperty(name string) Value {
+	idx, err := strconv.Atoi(name)
+	if err != nil {
+		panic(err)
+	}
+
+	return a.Store[idx]
+}
+
+func (a *Array) SetProperty(name string, value Value) {
+	idx, err := strconv.Atoi(name)
+	if err != nil {
+		panic(err)
+	}
+	a.Store[idx] = value
 }
 
 func (a *Array) _Object() {}

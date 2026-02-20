@@ -156,8 +156,8 @@ func (i *Interpreter) assignmentExpression(n *ast.AssignmentExpression) lang.Val
 	if identifier, ok := n.Left.(*ast.Identifier); ok {
 		i.put(identifier.Name, update)
 	} else if member, ok := n.Left.(*ast.MemberExpression); ok {
-		array, idx, _ := i.resolveArrayMemberExpression(member)
-		array.Store[idx] = update
+		o, property, _ := i.resolveMemberExpression(member)
+		o.SetProperty(property, update)
 	} else {
 		panic("unsupported assignment expression")
 	}
@@ -195,14 +195,14 @@ func (i *Interpreter) identifierUpdateExpression(n *ast.UpdateExpression, identi
 }
 
 func (i *Interpreter) memberUpdateExpression(n *ast.UpdateExpression, me *ast.MemberExpression) lang.Value {
-	array, idx, currentValue := i.resolveArrayMemberExpression(me)
+	o, property, currentValue := i.resolveMemberExpression(me)
 	if n.Operator == "++" {
 		update := lang.NewInt(currentValue.Int + 1)
-		array.Store[idx] = update
+		o.SetProperty(property, update)
 		return update
 	} else if n.Operator == "--" {
 		update := lang.NewInt(currentValue.Int - 1)
-		array.Store[idx] = update
+		o.SetProperty(property, update)
 		return update
 	} else {
 		panic("unsupported operation")
@@ -286,29 +286,17 @@ func (i *Interpreter) intLiteral(n *ast.IntLiteral) lang.Value {
 }
 
 func (i *Interpreter) memberExpression(n *ast.MemberExpression) lang.Value {
-	_, _, val := i.resolveArrayMemberExpression(n)
+	_, _, val := i.resolveMemberExpression(n)
 	return val
 }
 
-func (i *Interpreter) resolveArrayMemberExpression(n *ast.MemberExpression) (*lang.Array, int, lang.Value) {
+func (i *Interpreter) resolveMemberExpression(n *ast.MemberExpression) (lang.Object, string, lang.Value) {
 	o := i.Do(n.Object)
 	if o.Type != lang.ValueTypeObj {
-		panic("invalid object")
+		panic("not an object")
 	}
+	property := i.Do(n.Property)
 
-	array, ok := o.Obj.(*lang.Array)
-	if !ok {
-		panic("object is not an array")
-	}
-
-	index := i.Do(n.Property)
-	if index.Type != lang.ValueTypeInt {
-		panic("invalid index")
-	}
-
-	if index.Int >= len(array.Store) {
-		panic("index out of range")
-	}
-
-	return array, index.Int, array.Store[index.Int]
+	// TODO: String() is too lenient.
+	return o.Obj, property.String(), o.Obj.GetProperty(property.String())
 }
