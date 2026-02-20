@@ -156,9 +156,9 @@ func (i *Interpreter) arrayExpression(n *ast.ArrayExpression) lang.Value {
 func (i *Interpreter) objectExpression(n *ast.ObjectExpression) lang.Value {
 	properties := make(map[string]lang.Value)
 	for _, p := range n.Properties {
-		key := i.Do(p.Key)
+		key := p.Key.(*ast.Identifier)
 		value := i.Do(p.Value)
-		properties[key.Str] = value
+		properties[key.Name] = value
 	}
 
 	return lang.NewObj(&lang.JsObject{Storage: properties})
@@ -308,8 +308,15 @@ func (i *Interpreter) resolveMemberExpression(n *ast.MemberExpression) (lang.Obj
 	if o.Type != lang.ValueTypeObj {
 		panic("not an object")
 	}
-	property := i.Do(n.Property)
 
-	// TODO: String() is too lenient.
-	return o.Obj, property.String(), o.Obj.GetProperty(property.String())
+	var name string
+	if identifier, ok := n.Property.(*ast.Identifier); ok {
+		name = identifier.Name
+	} else {
+		property := i.Do(n.Property)
+		// TODO: String() is too lenient.
+		name = property.String()
+	}
+
+	return o.Obj, name, o.Obj.GetProperty(name)
 }

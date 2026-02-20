@@ -268,6 +268,10 @@ func (p *Parser) parseSecondaryExpression(lhs ast.Node) ast.Expression {
 		property := p.parseExpression()
 		p.consume(tkn.TokenKindRightSquareBracket)
 		return &ast.MemberExpression{Object: lhs.(*ast.Identifier), Property: property}
+	} else if p.match(tkn.TokenKindPeriod) {
+		p.consume(tkn.TokenKindPeriod)
+		property := p.parseExpression()
+		return &ast.MemberExpression{Object: lhs.(*ast.Identifier), Property: property}
 	} else {
 		panic("yoo yoo 2")
 	}
@@ -301,5 +305,6 @@ func (p *Parser) matchesSecondaryExpression() bool {
 		k == tkn.TokenKindLeftParen ||
 		k == tkn.TokenKindLessThan ||
 		k == tkn.TokenKindEqual ||
-		k == tkn.TokenKindLeftSquareBracket
+		k == tkn.TokenKindLeftSquareBracket ||
+		k == tkn.TokenKindPeriod
 }
