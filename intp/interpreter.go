@@ -88,6 +88,8 @@ func (i *Interpreter) Do(n ast.Node) lang.Value {
 		return i.intLiteral(n)
 	case *ast.MemberExpression:
 		return i.memberExpression(n)
+	case *ast.ObjectExpression:
+		return i.objectExpression(n)
 	case *ast.Program:
 		return i.program(n)
 	case *ast.ReturnStatement:
@@ -149,6 +151,17 @@ func (i *Interpreter) arrayExpression(n *ast.ArrayExpression) lang.Value {
 	}
 
 	return lang.NewObj(&lang.Array{Store: results})
+}
+
+func (i *Interpreter) objectExpression(n *ast.ObjectExpression) lang.Value {
+	properties := make(map[string]lang.Value)
+	for _, p := range n.Properties {
+		key := i.Do(p.Key)
+		value := i.Do(p.Value)
+		properties[key.Str] = value
+	}
+
+	return lang.NewObj(&lang.JsObject{Storage: properties})
 }
 
 func (i *Interpreter) assignmentExpression(n *ast.AssignmentExpression) lang.Value {
